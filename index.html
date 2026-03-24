@@ -1,0 +1,89 @@
+﻿<!doctype html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trofeu Filaes 2025 - Visual Interactiu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <main class="container">
+        <header class="hero">
+            <div class="hero-content">
+                <div>
+                    <p class="kicker">Centre d'Esports Alcoi</p>
+                    <h1>Trofeu Filaes 2025</h1>
+                    <p class="subtitle">Futbol Sala Senior - Divendres, 18 d'abril</p>
+                </div>
+                <div class="hero-side">
+                    <span class="date-chip">08:00 - 22:00</span>
+                    <span class="count-chip" id="globalCount">0 partits visibles</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="controls" aria-label="Filtres">
+            <div class="control">
+                <label for="search">Busca equip o referencia</label>
+                <input id="search" type="search" placeholder="Ex: 6A, 1G3, OF2..." />
+            </div>
+            <div class="control">
+                <label for="venue">Pista</label>
+                <select id="venue">
+                    <option value="all">Totes les pistes</option>
+                    <option value="Mutualidad de Levante">Pavello - Mutualidad de Levante</option>
+                    <option value="Miguel Sarasa Lores">Pavello - Miguel Sarasa Lores</option>
+                    <option value="Pista exterior gespa">Pista exterior gespa</option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="startTime">Hora minima</label>
+                <input id="startTime" type="range" min="8" max="22" step="1" value="8" />
+                <span class="muted" id="startTimeText">Des de les 08:00</span>
+            </div>
+            <div class="control">
+                <label>
+                    <input id="finalsOnly" type="checkbox" />
+                    Nomes eliminatories (quarts + OF)
+                </label>
+            </div>
+        </section>
+
+        <section class="groups">
+            <h2 class="groups-title">Fase de Grups</h2>
+            <div class="group-grid" id="groupGrid"></div>
+        </section>
+
+        <section class="standings" aria-label="Classificacio en viu">
+            <h2 class="standings-title">Classificacio en viu</h2>
+            <p class="standings-subtitle">Primers, segons i millor segon calculats amb les teues seleccions actuals</p>
+            <div class="standings-grid" id="standingsGrid"></div>
+        </section>
+
+        <section class="board">
+            <div class="venues" id="venues"></div>
+        </section>
+
+        <section class="bracket" aria-label="Quadre d'eliminatories">
+            <h2 class="bracket-title">Quadre d'eliminatories</h2>
+            <p class="bracket-subtitle">Vista resum OF1..OF8 + rondes virtuals segons les teues seleccions</p>
+            <div class="bracket-grid" id="finalsBracket"></div>
+        </section>
+
+        <section class="legend">
+            <span class="legend-item"><i class="dot" style="background: var(--brand)"></i>Partit de fase</span>
+            <span class="legend-item"><i class="dot" style="background: var(--brand-2)"></i>Eliminatoria</span>
+            <span class="legend-item"><i class="dot" style="background: #d39f2a"></i>Partit en hora actual</span>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
