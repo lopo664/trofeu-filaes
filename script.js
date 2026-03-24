@@ -38,9 +38,9 @@ const matches = [
     { venue: "Mutualidad de Levante", time: "14:00", code: "2G5", detail: "5C vs Perdedor 1G5" },
     { venue: "Mutualidad de Levante", time: "15:00", code: "3G3", detail: "Guanyador 1G3 vs 3C" },
     { venue: "Mutualidad de Levante", time: "16:00", code: "3G6", detail: "6B vs 6C" },
-    { venue: "Mutualidad de Levante", time: "19:00", code: "OF1", detail: "2n millor 2n G1 vs 2n G3", final: true },
-    { venue: "Mutualidad de Levante", time: "20:00", code: "OF3", detail: "1r G1 vs 2n G5", final: true },
-    { venue: "Mutualidad de Levante", time: "21:00", code: "OF5", detail: "1r G3 vs 1r G7", final: true },
+    { venue: "Mutualidad de Levante", time: "19:00", code: "OF1", detail: "2n millor 2n vs 2n G1", final: true },
+    { venue: "Mutualidad de Levante", time: "20:00", code: "OF3", detail: "1r G1 vs 2n G3", final: true },
+    { venue: "Mutualidad de Levante", time: "21:00", code: "OF5", detail: "1r G3 vs 2n G5", final: true },
     { venue: "Mutualidad de Levante", time: "22:00", code: "OF7", detail: "1r G5 vs 2n G7", final: true },
 
     { venue: "Miguel Sarasa Lores", time: "08:00", code: "1G1", detail: "1A vs 1B" },
@@ -53,7 +53,7 @@ const matches = [
     { venue: "Miguel Sarasa Lores", time: "15:00", code: "3G7", detail: "7B vs 7C" },
     { venue: "Miguel Sarasa Lores", time: "16:00", code: "4G6", detail: "6D vs 6A" },
     { venue: "Miguel Sarasa Lores", time: "17:00", code: "3G5", detail: "Guanyador 1G5 vs 5C" },
-    { venue: "Miguel Sarasa Lores", time: "19:00", code: "OF2", detail: "1r G2 vs 2n millor 2n", final: true },
+    { venue: "Miguel Sarasa Lores", time: "19:00", code: "OF2", detail: "1r G2 vs 1r millor 2n", final: true },
     { venue: "Miguel Sarasa Lores", time: "20:00", code: "OF4", detail: "1r G4 vs 2n G2", final: true },
     { venue: "Miguel Sarasa Lores", time: "21:00", code: "OF6", detail: "1r G6 vs 2n G4", final: true },
     { venue: "Miguel Sarasa Lores", time: "22:00", code: "OF8", detail: "1r G7 vs 2n G6", final: true },
@@ -78,22 +78,116 @@ const venueEl = document.getElementById("venue");
 const startTimeEl = document.getElementById("startTime");
 const startTimeText = document.getElementById("startTimeText");
 const finalsOnlyEl = document.getElementById("finalsOnly");
+const clearSavedDataEl = document.getElementById("clearSavedData");
 const finalsBracketEl = document.getElementById("finalsBracket");
 const standingsGridEl = document.getElementById("standingsGrid");
+const groupsSectionEl = document.querySelector(".groups");
+const groupsTitleEl = document.querySelector(".groups-title");
+const standingsSectionEl = document.querySelector(".standings");
+const standingsTitleEl = document.querySelector(".standings-title");
+const bracketSectionEl = document.querySelector(".bracket");
+const bracketTitleEl = document.querySelector(".bracket-title");
 
 let activeGroup = null;
+const activeTeamQuickPickByGroup = {};
+const quickPickAppliedCodesByGroup = {};
 const picks = {};
 const scores = {};
+const collapsedVenues = {};
+const STORAGE_KEY = "trofeu-filaes-results-v1";
 
 const virtualBracketMatches = [
-    { code: "QF1", detail: "Guanyador OF1 vs Guanyador OF2", final: true, virtual: true },
-    { code: "QF2", detail: "Guanyador OF3 vs Guanyador OF4", final: true, virtual: true },
-    { code: "QF3", detail: "Guanyador OF5 vs Guanyador OF6", final: true, virtual: true },
-    { code: "QF4", detail: "Guanyador OF7 vs Guanyador OF8", final: true, virtual: true },
-    { code: "SF1", detail: "Guanyador QF1 vs Guanyador QF2", final: true, virtual: true },
-    { code: "SF2", detail: "Guanyador QF3 vs Guanyador QF4", final: true, virtual: true },
-    { code: "F", detail: "Guanyador SF1 vs Guanyador SF2", final: true, virtual: true }
+    { code: "QF1", time: "09:00", detail: "Guanyador OF1 vs Guanyador OF5", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "QF2", time: "10:00", detail: "Guanyador OF2 vs Guanyador OF6", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "QF3", time: "11:00", detail: "Guanyador OF3 vs Guanyador OF7", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "QF4", time: "12:00", detail: "Guanyador OF4 vs Guanyador OF8", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "SF1", time: "16:00", detail: "Guanyador QF1 vs Guanyador QF4", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "SF2", time: "17:00", detail: "Guanyador QF2 vs Guanyador QF3", final: true, virtual: true, day: "Dissabte 19 d'abril" },
+    { code: "F", time: "19:30", detail: "Guanyador SF1 vs Guanyador SF2", final: true, virtual: true, day: "Dissabte 19 d'abril" }
 ];
+
+function getStorage() {
+    try {
+        return window.localStorage;
+    } catch {
+        return null;
+    }
+}
+
+function savePersistedState() {
+    const storage = getStorage();
+    if (!storage) {
+        return;
+    }
+
+    const payload = {
+        picks,
+        scores,
+        collapsedVenues
+    };
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function loadPersistedState() {
+    const storage = getStorage();
+    if (!storage) {
+        return;
+    }
+
+    const raw = storage.getItem(STORAGE_KEY);
+    if (!raw) {
+        return;
+    }
+
+    try {
+        const data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+            if (data.picks && typeof data.picks === "object") {
+                Object.entries(data.picks).forEach(([code, side]) => {
+                    if (side === "left" || side === "right") {
+                        picks[code] = side;
+                    }
+                });
+            }
+
+            if (data.scores && typeof data.scores === "object") {
+                Object.entries(data.scores).forEach(([code, score]) => {
+                    if (!score || typeof score !== "object") {
+                        return;
+                    }
+
+                    const left = Number.isInteger(score.left) && score.left >= 0 ? score.left : null;
+                    const right = Number.isInteger(score.right) && score.right >= 0 ? score.right : null;
+
+                    if (left !== null || right !== null) {
+                        scores[code] = { left, right };
+                    }
+                });
+            }
+
+            if (data.collapsedVenues && typeof data.collapsedVenues === "object") {
+                Object.entries(data.collapsedVenues).forEach(([venueName, isCollapsed]) => {
+                    if (typeof isCollapsed === "boolean") {
+                        collapsedVenues[venueName] = isCollapsed;
+                    }
+                });
+            }
+        }
+    } catch {
+        storage.removeItem(STORAGE_KEY);
+    }
+}
+
+function clearPersistedResults() {
+    Object.keys(picks).forEach((key) => delete picks[key]);
+    Object.keys(scores).forEach((key) => delete scores[key]);
+
+    const storage = getStorage();
+    if (storage) {
+        storage.removeItem(STORAGE_KEY);
+    }
+}
 
 function hourNumber(time) {
     return Number(time.split(":")[0]);
@@ -363,7 +457,7 @@ function getGroupPositionTeam(groupId, positionIndex) {
     };
 }
 
-function getBestSecondTeam(excludedGroupId = null) {
+function getBestSecondCandidates(excludedGroupId = null) {
     const ranking = computeGroupStandings();
     const candidates = [];
 
@@ -395,28 +489,48 @@ function getBestSecondTeam(excludedGroupId = null) {
         return a.code.localeCompare(b.code);
     });
 
-    if (candidates.length > 1) {
-        const first = candidates[0];
-        const second = candidates[1];
-        const tiedTop =
-            first.points === second.points &&
-            first.gd === second.gd &&
-            first.gf === second.gf &&
-            first.wins === second.wins &&
-            first.ga === second.ga;
-        if (tiedTop) {
-            return null;
-        }
+    return candidates;
+}
+
+function sameBestSecondRecord(a, b) {
+    return Boolean(
+        a && b
+        && a.points === b.points
+        && a.gd === b.gd
+        && a.gf === b.gf
+        && a.wins === b.wins
+        && a.ga === b.ga
+    );
+}
+
+function getBestSecondTeamByRank(rankNumber, excludedGroupId = null) {
+    const candidates = getBestSecondCandidates(excludedGroupId);
+
+    if (!Number.isInteger(rankNumber) || rankNumber < 1) {
+        return null;
     }
 
-    const best = candidates[0];
-    if (!best) {
+    const targetIndex = rankNumber - 1;
+    const target = candidates[targetIndex];
+    if (!target) {
+        return null;
+    }
+
+    const first = candidates[0];
+    const second = candidates[1];
+    const third = candidates[2];
+
+    if (sameBestSecondRecord(first, second)) {
+        return null;
+    }
+
+    if (rankNumber === 2 && sameBestSecondRecord(second, third)) {
         return null;
     }
 
     return {
-        code: best.code,
-        text: `${teamNames[best.code]} (${best.code})`
+        code: target.code,
+        text: `${teamNames[target.code]} (${target.code})`
     };
 }
 
@@ -445,10 +559,24 @@ function resolveSideToken(token, stack = new Set()) {
         return team || { text: token };
     }
 
-    const bestSecondMatch = token.match(/^2n\s+millor\s+2n(?:\s+G([1-7]))?$/i);
-    if (bestSecondMatch) {
-        const excludedGroupId = bestSecondMatch[1] ? Number(bestSecondMatch[1]) : null;
-        const team = getBestSecondTeam(excludedGroupId);
+    const firstBestSecondMatch = token.match(/^1r\s+millor\s+2n(?:\s+G([1-7]))?$/i);
+    if (firstBestSecondMatch) {
+        const excludedGroupId = firstBestSecondMatch[1] ? Number(firstBestSecondMatch[1]) : null;
+        const team = getBestSecondTeamByRank(1, excludedGroupId);
+        return team || { text: token };
+    }
+
+    const secondBestSecondMatch = token.match(/^2n\s+millor\s+2n(?:\s+G([1-7]))?$/i);
+    if (secondBestSecondMatch) {
+        const excludedGroupId = secondBestSecondMatch[1] ? Number(secondBestSecondMatch[1]) : null;
+        const team = getBestSecondTeamByRank(2, excludedGroupId);
+        return team || { text: token };
+    }
+
+    const genericBestSecondMatch = token.match(/^millor\s+2n(?:\s+G([1-7]))?$/i);
+    if (genericBestSecondMatch) {
+        const excludedGroupId = genericBestSecondMatch[1] ? Number(genericBestSecondMatch[1]) : null;
+        const team = getBestSecondTeamByRank(1, excludedGroupId);
         return team || { text: token };
     }
 
@@ -479,6 +607,19 @@ function extractGroups(match) {
     while ((token = regex.exec(text)) !== null) {
         if (token[1]) found.add(Number(token[1]));
         if (token[2]) found.add(Number(token[2]));
+    }
+
+    // "millor 2n" can represent second-place teams from many groups.
+    // Include all candidate groups (except explicit exclusion like "G1").
+    const bestSecondRegex = /(?:1r|2n)?\s*millor\s*2n(?:\s*G([1-7]))?/gi;
+    let bestSecondToken;
+    while ((bestSecondToken = bestSecondRegex.exec(text)) !== null) {
+        const excludedGroup = bestSecondToken[1] ? Number(bestSecondToken[1]) : null;
+        for (let group = 1; group <= 7; group += 1) {
+            if (group !== excludedGroup) {
+                found.add(group);
+            }
+        }
     }
 
     return [...found];
@@ -531,24 +672,150 @@ function renderStandings() {
 function renderGroups() {
     groupGrid.innerHTML = "";
     groups.forEach((group) => {
-        const card = document.createElement("button");
-        card.type = "button";
+        const card = document.createElement("article");
         card.className = `group-card ${activeGroup === group.id ? "active" : ""}`;
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
         card.innerHTML = `
           <p class="group-name">${group.name}</p>
           <div class="team-list">
-                        ${group.teams.map((team) => `<span class="pill">${teamLabel(team)}</span>`).join("")}
+                        ${group.teams.map((team) => `
+                                                        <button type="button" class="pill team-pill ${activeTeamQuickPickByGroup[group.id] === team ? "active" : ""}" data-team="${team}">${teamLabel(team)}</button>
+                        `).join("")}
           </div>
         `;
 
-        card.addEventListener("click", () => {
+        const toggleGroupFilter = () => {
             activeGroup = activeGroup === group.id ? null : group.id;
             renderGroups();
             renderBoard();
+        };
+
+        card.addEventListener("click", toggleGroupFilter);
+        card.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggleGroupFilter();
+            }
+        });
+
+        card.querySelectorAll(".team-pill").forEach((pillBtn) => {
+            pillBtn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                const teamCode = pillBtn.dataset.team;
+
+                if (!teamCode) {
+                    return;
+                }
+
+                const teamGroupId = Number(teamCode.charAt(0));
+                if (!Number.isInteger(teamGroupId) || teamGroupId < 1 || teamGroupId > 7) {
+                    return;
+                }
+
+                if (activeTeamQuickPickByGroup[teamGroupId] === teamCode) {
+                    clearTeamQuickPickResults(teamGroupId);
+                    delete activeTeamQuickPickByGroup[teamGroupId];
+                } else {
+                    clearTeamQuickPickResults(teamGroupId);
+                    applyTeamQuickPickResults(teamCode, teamGroupId);
+                    activeTeamQuickPickByGroup[teamGroupId] = teamCode;
+                }
+
+                savePersistedState();
+                renderGroups();
+                renderBoard();
+            });
         });
 
         groupGrid.appendChild(card);
     });
+}
+
+function clearTeamQuickPickResults(groupId) {
+    const appliedCodes = quickPickAppliedCodesByGroup[groupId];
+    if (!appliedCodes) {
+        return;
+    }
+
+    appliedCodes.forEach((code) => {
+        delete picks[code];
+        delete scores[code];
+    });
+    delete quickPickAppliedCodesByGroup[groupId];
+}
+
+function applyTeamQuickPickResults(teamCode, groupId) {
+    if (!quickPickAppliedCodesByGroup[groupId]) {
+        quickPickAppliedCodesByGroup[groupId] = new Set();
+    }
+    const appliedCodes = quickPickAppliedCodesByGroup[groupId];
+    appliedCodes.clear();
+
+    const groupMatches = matches
+        .filter((match) => {
+            if (!/^[1-4]G[1-7]$/.test(match.code)) {
+                return false;
+            }
+
+            const matchGroup = match.code.match(/G([1-7])$/);
+            return Boolean(matchGroup && Number(matchGroup[1]) === groupId);
+        })
+        .sort((a, b) => {
+            const aRound = Number(a.code[0]);
+            const bRound = Number(b.code[0]);
+            if (aRound !== bRound) {
+                return aRound - bRound;
+            }
+            return a.code.localeCompare(b.code);
+        });
+
+    for (let pass = 0; pass < 4; pass += 1) {
+        let changed = false;
+
+        groupMatches.forEach((match) => {
+            const sides = splitSides(match.detail);
+            if (!sides) {
+                return;
+            }
+
+            const left = resolveSideToken(sides[0]);
+            const right = resolveSideToken(sides[1]);
+
+            let sideToPick = null;
+            if (left?.code === teamCode || sides[0] === teamCode) {
+                sideToPick = "left";
+            } else if (right?.code === teamCode || sides[1] === teamCode) {
+                sideToPick = "right";
+            }
+
+            if (!sideToPick) {
+                return;
+            }
+
+            const expectedScore = {
+                left: sideToPick === "left" ? 1 : 0,
+                right: sideToPick === "right" ? 1 : 0
+            };
+
+            const currentScore = scores[match.code];
+            const hasExpectedScore = currentScore
+                && currentScore.left === expectedScore.left
+                && currentScore.right === expectedScore.right;
+
+            if (picks[match.code] !== sideToPick || !hasExpectedScore) {
+                picks[match.code] = sideToPick;
+                scores[match.code] = expectedScore;
+                appliedCodes.add(match.code);
+                changed = true;
+            }
+        });
+
+        if (!changed) {
+            break;
+        }
+    }
 }
 
 function filteredMatches() {
@@ -590,13 +857,32 @@ function renderBoard() {
 
         const venue = document.createElement("article");
         venue.className = "venue";
+        const isCollapsed = Boolean(collapsedVenues[venueName]);
+        if (isCollapsed) {
+            venue.classList.add("is-collapsed");
+        }
 
         const header = document.createElement("div");
         header.className = "venue-header";
+        header.setAttribute("role", "button");
+        header.tabIndex = 0;
+        header.setAttribute("aria-expanded", String(!isCollapsed));
         header.innerHTML = `
           <h3 class="venue-title">${venueName}</h3>
           <p class="venue-count">${list.length} partits</p>
         `;
+        const toggleVenue = () => {
+            collapsedVenues[venueName] = !Boolean(collapsedVenues[venueName]);
+            savePersistedState();
+            renderBoard();
+        };
+        header.addEventListener("click", toggleVenue);
+        header.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggleVenue();
+            }
+        });
         venue.appendChild(header);
 
         const matchList = document.createElement("div");
@@ -655,7 +941,25 @@ function renderBoard() {
     venuesEl.querySelectorAll(".pick-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
             const { code, side } = btn.dataset;
-            picks[code] = side;
+            const isGroupStageMatch = /^[1-4]G[1-7]$/.test(code);
+            const isSameSideClick = picks[code] === side;
+
+            if (isGroupStageMatch) {
+                if (isSameSideClick) {
+                    delete picks[code];
+                    delete scores[code];
+                } else {
+                    picks[code] = side;
+                    scores[code] = {
+                        left: side === "left" ? 1 : 0,
+                        right: side === "right" ? 1 : 0
+                    };
+                }
+            } else {
+                picks[code] = side;
+            }
+
+            savePersistedState();
             renderBoard();
         });
     });
@@ -664,6 +968,7 @@ function renderBoard() {
         btn.addEventListener("click", () => {
             const code = btn.dataset.clearCode;
             delete picks[code];
+            savePersistedState();
             renderBoard();
         });
     });
@@ -688,6 +993,8 @@ function renderBoard() {
                 picks[scoreCode] = winnerSide;
             }
 
+            savePersistedState();
+
             renderBoard();
         });
     });
@@ -705,12 +1012,15 @@ function renderBracketMatchCard(match) {
     const left = resolveSideToken(sides[0]);
     const right = resolveSideToken(sides[1]);
     const picked = picks[match.code] || "";
+    const timeLabel = match.time && match.day
+        ? `${match.time} · ${match.day}`
+        : (match.time || match.day || "Virtual");
 
     return `
                 <article class="bracket-match ${match.virtual ? "virtual" : ""}">
                     <div class="bracket-head">
                         <span class="bracket-code">${match.code}</span>
-                        <span class="bracket-time">${match.time || "Virtual"}</span>
+                        <span class="bracket-time">${timeLabel}</span>
                     </div>
                     <p class="bracket-line">${left.text}</p>
                     <p class="bracket-line">${right.text}</p>
@@ -726,7 +1036,7 @@ function renderBracketMatchCard(match) {
 function renderBracket() {
     const rounds = [
         {
-            name: "OF (Reals)",
+            name: "Octaus (Reals)",
             matches: ["OF1", "OF2", "OF3", "OF4", "OF5", "OF6", "OF7", "OF8"].map(getMatchByCode).filter(Boolean)
         },
         {
@@ -754,6 +1064,7 @@ function renderBracket() {
         btn.addEventListener("click", () => {
             const { code, side } = btn.dataset;
             picks[code] = side;
+            savePersistedState();
             renderBoard();
         });
     });
@@ -762,6 +1073,7 @@ function renderBracket() {
         btn.addEventListener("click", () => {
             const code = btn.dataset.clearCode;
             delete picks[code];
+            savePersistedState();
             renderBoard();
         });
     });
@@ -772,12 +1084,64 @@ function refreshStartTimeLabel() {
     startTimeText.textContent = `Des de les ${String(value).padStart(2, "0")}:00`;
 }
 
+function setupCollapsibleSection(sectionEl, titleEl, storageKey) {
+    if (!sectionEl || !titleEl) {
+        return;
+    }
+
+    titleEl.classList.add("section-toggle");
+    titleEl.setAttribute("role", "button");
+    titleEl.tabIndex = 0;
+
+    const storage = getStorage();
+    const storedValue = storage ? storage.getItem(storageKey) : null;
+    const initialCollapsed = storedValue === "1";
+
+    const applyCollapsedState = (collapsed) => {
+        sectionEl.classList.toggle("is-collapsed", collapsed);
+        titleEl.setAttribute("aria-expanded", String(!collapsed));
+        if (storage) {
+            storage.setItem(storageKey, collapsed ? "1" : "0");
+        }
+    };
+
+    applyCollapsedState(initialCollapsed);
+
+    const toggle = () => {
+        const collapsed = sectionEl.classList.contains("is-collapsed");
+        applyCollapsedState(!collapsed);
+    };
+
+    titleEl.addEventListener("click", toggle);
+    titleEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggle();
+        }
+    });
+}
+
+function initCollapsibleSections() {
+    setupCollapsibleSection(groupsSectionEl, groupsTitleEl, "trofeu-collapse-groups");
+    setupCollapsibleSection(standingsSectionEl, standingsTitleEl, "trofeu-collapse-standings");
+    setupCollapsibleSection(bracketSectionEl, bracketTitleEl, "trofeu-collapse-bracket");
+}
+
 [searchEl, venueEl, finalsOnlyEl].forEach((el) => el.addEventListener("input", renderBoard));
 startTimeEl.addEventListener("input", () => {
     refreshStartTimeLabel();
     renderBoard();
 });
 
+if (clearSavedDataEl) {
+    clearSavedDataEl.addEventListener("click", () => {
+        clearPersistedResults();
+        renderBoard();
+    });
+}
+
+initCollapsibleSections();
+loadPersistedState();
 renderGroups();
 refreshStartTimeLabel();
 renderBoard();

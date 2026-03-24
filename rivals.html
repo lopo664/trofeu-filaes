@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trofeu Filaes 2026 - Analisi de Rivals</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="rivals.css">
+</head>
+
+<body>
+    <main class="container">
+        <header class="hero">
+            <p class="kicker">Trofeu Filaes 2026</p>
+            <h1>Analisi de Rivals</h1>
+            <p class="subtitle">Compara el teu cami si acabes primer o segon de grup</p>
+            <div class="hero-actions">
+                <a class="btn btn-secondary" href="index.html">Tornar al quadre principal</a>
+            </div>
+        </header>
+
+        <section class="panel controls" aria-label="Configuracio">
+            <label for="groupSelect">El teu grup</label>
+            <select id="groupSelect">
+                <option value="1">Grup 1</option>
+                <option value="2">Grup 2</option>
+                <option value="3">Grup 3</option>
+                <option value="4">Grup 4</option>
+                <option value="5">Grup 5</option>
+                <option value="6">Grup 6</option>
+                <option value="7">Grup 7</option>
+            </select>
+            <p class="hint">Es mostren tots els possibles rivals per ronda, assumint que continues guanyant.</p>
+        </section>
+
+        <section class="comparison" id="comparison" aria-live="polite"></section>
+    </main>
+
+    <script src="rivals.js"></script>
+</body>
+
+</html>

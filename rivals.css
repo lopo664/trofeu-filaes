@@ -1,0 +1,291 @@
+:root {
+    --bg-1: #f6f6ef;
+    --bg-2: #e9efdf;
+    --ink: #11181c;
+    --muted: #556268;
+    --brand: #275d3d;
+    --brand-2: #bc3e2d;
+    --panel: rgba(255, 255, 255, 0.82);
+    --line: rgba(17, 24, 28, 0.12);
+    --shadow: 0 14px 45px rgba(0, 0, 0, 0.09);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Manrope", sans-serif;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 12% 8%, rgba(188, 62, 45, 0.13) 0, transparent 30%),
+        radial-gradient(circle at 82% 18%, rgba(39, 93, 61, 0.14) 0, transparent 34%),
+        linear-gradient(140deg, var(--bg-1), var(--bg-2));
+    min-height: 100vh;
+    padding: 28px;
+}
+
+.container {
+    max-width: 1220px;
+    margin: 0 auto;
+    display: grid;
+    gap: 18px;
+}
+
+.hero,
+.panel,
+.compare-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+
+.hero {
+    padding: 20px;
+    display: grid;
+    gap: 8px;
+}
+
+.kicker {
+    margin: 0;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+    color: var(--brand);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+h1 {
+    margin: 0;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.04em;
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    line-height: 0.95;
+    font-weight: 400;
+}
+
+.subtitle {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.hero-actions {
+    margin-top: 4px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    padding: 9px 14px;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.btn-secondary {
+    color: var(--brand-2);
+    border-color: rgba(188, 62, 45, 0.35);
+    background: #fff;
+}
+
+.controls {
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+    max-width: 360px;
+}
+
+label {
+    font-weight: 800;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+}
+
+select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 12px;
+    background: #fff;
+    font: inherit;
+}
+
+.hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
+    gap: 14px;
+}
+
+.compare-card {
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+.compare-title {
+    margin: 0;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.05em;
+    font-size: 1.75rem;
+}
+
+.compare-title.first {
+    color: var(--brand);
+}
+
+.compare-title.second {
+    color: #8a5c06;
+}
+
+.route {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    background: #fff;
+    display: grid;
+    gap: 8px;
+}
+
+.route-head {
+    margin: 0;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    color: var(--muted);
+}
+
+.stage {
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 8px;
+    display: grid;
+    gap: 6px;
+}
+
+.stage-name {
+    margin: 0;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.stage-meta {
+    margin: 0;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: linear-gradient(160deg, #fff, rgba(17, 24, 28, 0.04));
+}
+
+.empty {
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+@media (max-width: 860px) {
+    body {
+        padding: 14px;
+    }
+
+    .container {
+        gap: 12px;
+    }
+
+    .hero {
+        border-radius: 14px;
+        padding: 16px;
+    }
+
+    .panel,
+    .compare-card,
+    .route,
+    .stage {
+        border-radius: 12px;
+    }
+
+    .controls {
+        max-width: none;
+        padding: 12px;
+    }
+
+    select {
+        min-height: 44px;
+    }
+
+    .btn {
+        width: 100%;
+        min-height: 42px;
+    }
+
+    .comparison {
+        grid-template-columns: 1fr;
+    }
+
+    .chips {
+        gap: 5px;
+    }
+
+    .chip {
+        font-size: 0.66rem;
+    }
+}
+
+@media (max-width: 420px) {
+    h1 {
+        font-size: clamp(2rem, 12vw, 2.8rem);
+    }
+
+    .subtitle {
+        font-size: 0.76rem;
+    }
+
+    .compare-title {
+        font-size: 1.5rem;
+    }
+}
