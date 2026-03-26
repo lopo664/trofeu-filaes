@@ -1,6 +1,6 @@
 const knockoutMatches = [
-    { code: "OF1", time: "19:00", detail: "2n millor 2n vs 2n G1" },
-    { code: "OF2", time: "19:00", detail: "1r G2 vs 1r millor 2n" },
+    { code: "OF1", time: "19:00", detail: "2n millor 3r vs 2n G1" },
+    { code: "OF2", time: "19:00", detail: "1r G2 vs 1r millor 3r" },
     { code: "OF3", time: "20:00", detail: "1r G1 vs 2n G3" },
     { code: "OF4", time: "20:00", detail: "1r G4 vs 2n G2" },
     { code: "OF5", time: "21:00", detail: "1r G3 vs 2n G5" },
@@ -50,22 +50,22 @@ function timeLabel(match) {
 }
 
 function seedLabel(seed) {
-    const firstBestSecond = seed.match(/^1r\s+millor\s+2n\s+G([1-7])$/i);
-    if (firstBestSecond) {
-        const group = Number(firstBestSecond[1]);
+    const firstBestThird = seed.match(/^1r\s+millor\s+3r\s+G([1-7])$/i);
+    if (firstBestThird) {
+        const group = Number(firstBestThird[1]);
         const names = teamsByGroup[group] || [];
         return names.length
-            ? `1r millor 2n (G${group}): ${names.join(" / ")}`
-            : `1r millor 2n (G${group})`;
+            ? `1r millor 3r (G${group}): ${names.join(" / ")}`
+            : `1r millor 3r (G${group})`;
     }
 
-    const secondBestSecond = seed.match(/^2n\s+millor\s+2n\s+G([1-7])$/i);
-    if (secondBestSecond) {
-        const group = Number(secondBestSecond[1]);
+    const secondBestThird = seed.match(/^2n\s+millor\s+3r\s+G([1-7])$/i);
+    if (secondBestThird) {
+        const group = Number(secondBestThird[1]);
         const names = teamsByGroup[group] || [];
         return names.length
-            ? `2n millor 2n (G${group}): ${names.join(" / ")}`
-            : `2n millor 2n (G${group})`;
+            ? `2n millor 3r (G${group}): ${names.join(" / ")}`
+            : `2n millor 3r (G${group})`;
     }
 
     const first = seed.match(/^1r\sG([1-7])$/i);
@@ -86,6 +86,15 @@ function seedLabel(seed) {
             : `2n del Grup ${group}`;
     }
 
+    const third = seed.match(/^3r\sG([1-7])$/i);
+    if (third) {
+        const group = Number(third[1]);
+        const names = teamsByGroup[group] || [];
+        return names.length
+            ? `3r del Grup ${group}: ${names.join(" / ")}`
+            : `3r del Grup ${group}`;
+    }
+
     return seed;
 }
 
@@ -97,11 +106,14 @@ function sortSeeds(a, b) {
         const second = seed.match(/^2n\sG([1-7])$/i);
         if (second) return { rank: 2, group: Number(second[1]) };
 
-        const firstBestSecond = seed.match(/^1r\s+millor\s+2n\s+G([1-7])$/i);
-        if (firstBestSecond) return { rank: 2, group: Number(firstBestSecond[1]) };
+        const third = seed.match(/^3r\sG([1-7])$/i);
+        if (third) return { rank: 3, group: Number(third[1]) };
 
-        const secondBestSecond = seed.match(/^2n\s+millor\s+2n\s+G([1-7])$/i);
-        if (secondBestSecond) return { rank: 2, group: Number(secondBestSecond[1]) };
+        const firstBestThird = seed.match(/^1r\s+millor\s+3r\s+G([1-7])$/i);
+        if (firstBestThird) return { rank: 3, group: Number(firstBestThird[1]) };
+
+        const secondBestThird = seed.match(/^2n\s+millor\s+3r\s+G([1-7])$/i);
+        if (secondBestThird) return { rank: 3, group: Number(secondBestThird[1]) };
 
         return { rank: 9, group: 99 };
     };
@@ -114,18 +126,18 @@ function sortSeeds(a, b) {
     return a.localeCompare(b);
 }
 
-function expandBestSecond(token) {
-    const firstBestSecond = token.match(/^1r\s+millor\s+2n(?:\s+G([1-7]))?$/i);
-    const secondBestSecond = token.match(/^2n\s+millor\s+2n(?:\s+G([1-7]))?$/i);
-    const genericBestSecond = token.match(/^millor\s+2n(?:\s+G([1-7]))?$/i);
-    const fallbackBestSecond = token.match(/^2n\smillor\s2n(?:\sG([1-7]))?$/i);
+function expandBestThird(token) {
+    const firstBestThird = token.match(/^1r\s+millor\s+3r(?:\s+G([1-7]))?$/i);
+    const secondBestThird = token.match(/^2n\s+millor\s+3r(?:\s+G([1-7]))?$/i);
+    const genericBestThird = token.match(/^millor\s+3r(?:\s+G([1-7]))?$/i);
+    const fallbackBestThird = token.match(/^2n\smillor\s3r(?:\sG([1-7]))?$/i);
 
-    const match = firstBestSecond || secondBestSecond || genericBestSecond || fallbackBestSecond;
+    const match = firstBestThird || secondBestThird || genericBestThird || fallbackBestThird;
     if (!match) {
         return null;
     }
 
-    const tier = secondBestSecond || fallbackBestSecond ? "2n" : "1r";
+    const tier = secondBestThird || fallbackBestThird ? "2n" : "1r";
     const excludedGroup = match[1] ? Number(match[1]) : null;
     const list = [];
 
@@ -133,22 +145,22 @@ function expandBestSecond(token) {
         if (group === excludedGroup) {
             continue;
         }
-        list.push(`${tier} millor 2n G${group}`);
+        list.push(`${tier} millor 3r G${group}`);
     }
 
     return list;
 }
 
-function getBestSecondTokenTier(token) {
-    if (/^1r\s+millor\s+2n(?:\s+G[1-7])?$/i.test(token)) {
+function getBestThirdTokenTier(token) {
+    if (/^1r\s+millor\s+3r(?:\s+G[1-7])?$/i.test(token)) {
         return "1r";
     }
 
-    if (/^2n\s+millor\s+2n(?:\s+G[1-7])?$/i.test(token) || /^2n\smillor\s2n(?:\sG[1-7])?$/i.test(token)) {
+    if (/^2n\s+millor\s+3r(?:\s+G[1-7])?$/i.test(token) || /^2n\smillor\s3r(?:\sG[1-7])?$/i.test(token)) {
         return "2n";
     }
 
-    if (/^millor\s+2n(?:\s+G[1-7])?$/i.test(token)) {
+    if (/^millor\s+3r(?:\s+G[1-7])?$/i.test(token)) {
         return "1r";
     }
 
@@ -161,9 +173,9 @@ function possibleWinnersFromToken(token, visited = new Set()) {
         return possibleWinnersFromMatch(winnerMatch[1], visited);
     }
 
-    const expandedBestSecond = expandBestSecond(token);
-    if (expandedBestSecond) {
-        return new Set(expandedBestSecond);
+    const expandedBestThird = expandBestThird(token);
+    if (expandedBestThird) {
+        return new Set(expandedBestThird);
     }
 
     return new Set([token]);
@@ -216,17 +228,17 @@ function findNextMatch(code) {
     return null;
 }
 
-function seedQualifiesAsBestSecond(group, token) {
-    const bestSecond =
-        token.match(/^1r\s+millor\s+2n(?:\s+G([1-7]))?$/i)
-        || token.match(/^2n\s+millor\s+2n(?:\s+G([1-7]))?$/i)
-        || token.match(/^millor\s+2n(?:\s+G([1-7]))?$/i)
-        || token.match(/^2n\smillor\s2n(?:\sG([1-7]))?$/i);
-    if (!bestSecond) {
+function seedQualifiesAsBestThird(group, token) {
+    const bestThird =
+        token.match(/^1r\s+millor\s+3r(?:\s+G([1-7]))?$/i)
+        || token.match(/^2n\s+millor\s+3r(?:\s+G([1-7]))?$/i)
+        || token.match(/^millor\s+3r(?:\s+G([1-7]))?$/i)
+        || token.match(/^2n\smillor\s3r(?:\sG([1-7]))?$/i);
+    if (!bestThird) {
         return false;
     }
 
-    const excludedGroup = bestSecond[1] ? Number(bestSecond[1]) : null;
+    const excludedGroup = bestThird[1] ? Number(bestThird[1]) : null;
     return group !== excludedGroup;
 }
 
@@ -253,9 +265,9 @@ function findEntryRoutes(seed, group) {
                     return;
                 }
 
-                if (seed.startsWith("2n G") && seedQualifiesAsBestSecond(group, token)) {
-                    const tier = getBestSecondTokenTier(token);
-                    const routeTypeLabel = tier ? `${tier} millor 2n` : "millor segon";
+                if (seed.startsWith("3r G") && seedQualifiesAsBestThird(group, token)) {
+                    const tier = getBestThirdTokenTier(token);
+                    const routeTypeLabel = tier ? `${tier} millor 3r` : "millor tercer";
                     routes.push({
                         matchCode: match.code,
                         side,
@@ -328,7 +340,7 @@ function renderPositionCard(title, titleClass, routes, seedLabelText) {
         return `
             <article class="compare-card">
                 <h2 class="compare-title ${titleClass}">${title}</h2>
-                <p class="empty">Amb ${seedLabelText} no hi ha un cami clar cap al quadre final amb les regles actuals.</p>
+                <p class="empty">Amb ${seedLabelText} no hi ha un camí clar cap al quadre final amb les regles actuals.</p>
             </article>
         `;
     }
@@ -355,13 +367,16 @@ function renderComparison() {
     const group = Number(groupSelectEl.value);
     const firstSeed = `1r G${group}`;
     const secondSeed = `2n G${group}`;
+    const thirdSeed = `3r G${group}`;
 
     const firstRoutes = findEntryRoutes(firstSeed, group);
     const secondRoutes = findEntryRoutes(secondSeed, group);
+    const thirdRoutes = findEntryRoutes(thirdSeed, group);
 
     comparisonEl.innerHTML = [
         renderPositionCard("Si acabes 1r", "first", firstRoutes, firstSeed),
-        renderPositionCard("Si acabes 2n", "second", secondRoutes, secondSeed)
+        renderPositionCard("Si acabes 2n", "second", secondRoutes, secondSeed),
+        renderPositionCard("Si acabes 3r", "third", thirdRoutes, thirdSeed)
     ].join("");
 }
 

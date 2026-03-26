@@ -38,7 +38,7 @@ const matches = [
     { venue: "Mutualidad de Levante", time: "14:00", code: "2G5", detail: "5C vs Perdedor 1G5" },
     { venue: "Mutualidad de Levante", time: "15:00", code: "3G3", detail: "Guanyador 1G3 vs 3C" },
     { venue: "Mutualidad de Levante", time: "16:00", code: "3G6", detail: "6B vs 6C" },
-    { venue: "Mutualidad de Levante", time: "19:00", code: "OF1", detail: "2n millor 2n vs 2n G1", final: true },
+    { venue: "Mutualidad de Levante", time: "19:00", code: "OF1", detail: "2n millor 3r vs 2n G1", final: true },
     { venue: "Mutualidad de Levante", time: "20:00", code: "OF3", detail: "1r G1 vs 2n G3", final: true },
     { venue: "Mutualidad de Levante", time: "21:00", code: "OF5", detail: "1r G3 vs 2n G5", final: true },
     { venue: "Mutualidad de Levante", time: "22:00", code: "OF7", detail: "1r G5 vs 2n G7", final: true },
@@ -53,7 +53,7 @@ const matches = [
     { venue: "Miguel Sarasa Lores", time: "15:00", code: "3G7", detail: "7B vs 7C" },
     { venue: "Miguel Sarasa Lores", time: "16:00", code: "4G6", detail: "6D vs 6A" },
     { venue: "Miguel Sarasa Lores", time: "17:00", code: "3G5", detail: "Guanyador 1G5 vs 5C" },
-    { venue: "Miguel Sarasa Lores", time: "19:00", code: "OF2", detail: "1r G2 vs 1r millor 2n", final: true },
+    { venue: "Miguel Sarasa Lores", time: "19:00", code: "OF2", detail: "1r G2 vs 1r millor 3r", final: true },
     { venue: "Miguel Sarasa Lores", time: "20:00", code: "OF4", detail: "1r G4 vs 2n G2", final: true },
     { venue: "Miguel Sarasa Lores", time: "21:00", code: "OF6", detail: "1r G6 vs 2n G4", final: true },
     { venue: "Miguel Sarasa Lores", time: "22:00", code: "OF8", detail: "1r G7 vs 2n G6", final: true },
@@ -419,12 +419,14 @@ function computeGroupStandings() {
         const complete = Boolean(stats && stats.totalMatches > 0 && stats.resolvedMatches === stats.totalMatches);
         const firstTied = rows.length > 1 && hasSameRecord(rows[0], rows[1]);
         const secondTiedWithThird = rows.length > 2 && hasSameRecord(rows[1], rows[2]);
+        const thirdTiedWithFourth = rows.length > 3 && hasSameRecord(rows[2], rows[3]);
 
         ranking[groupId] = {
             rows,
             complete,
             firstResolved: complete && !firstTied,
-            secondResolved: complete && !firstTied && !secondTiedWithThird
+            secondResolved: complete && !firstTied && !secondTiedWithThird,
+            thirdResolved: complete && !secondTiedWithThird && !thirdTiedWithFourth
         };
     });
 
@@ -446,6 +448,10 @@ function getGroupPositionTeam(groupId, positionIndex) {
         return null;
     }
 
+    if (positionIndex === 2 && !groupRanking.thirdResolved) {
+        return null;
+    }
+
     const entry = groupRanking.rows?.[positionIndex];
     if (!entry || !entry.code) {
         return null;
@@ -457,7 +463,7 @@ function getGroupPositionTeam(groupId, positionIndex) {
     };
 }
 
-function getBestSecondCandidates(excludedGroupId = null) {
+function getBestThirdCandidates(excludedGroupId = null) {
     const ranking = computeGroupStandings();
     const candidates = [];
 
@@ -467,16 +473,16 @@ function getBestSecondCandidates(excludedGroupId = null) {
             return;
         }
 
-        if (!ranking[groupId].secondResolved) {
+        if (!ranking[groupId].thirdResolved) {
             return;
         }
 
-        const second = ranking[groupId].rows[1];
-        if (!second || !second.code) {
+        const third = ranking[groupId].rows[2];
+        if (!third || !third.code) {
             return;
         }
 
-        candidates.push({ groupId, ...second });
+        candidates.push({ groupId, ...third });
     });
 
     candidates.sort((a, b) => {
@@ -492,7 +498,54 @@ function getBestSecondCandidates(excludedGroupId = null) {
     return candidates;
 }
 
-function sameBestSecondRecord(a, b) {
+function getBestThirdRanking(ranking = computeGroupStandings(), excludedGroupId = null) {
+    const candidates = [];
+
+    Object.keys(ranking).forEach((groupIdKey) => {
+        const groupId = Number(groupIdKey);
+        if (excludedGroupId && groupId === excludedGroupId) {
+            return;
+        }
+
+        const groupData = ranking[groupId];
+        if (!groupData?.thirdResolved) {
+            return;
+        }
+
+        const third = groupData.rows?.[2];
+        if (!third?.code) {
+            return;
+        }
+
+        candidates.push({ groupId, ...third });
+    });
+
+    candidates.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        if (b.gf !== a.gf) return b.gf - a.gf;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (a.ga !== b.ga) return a.ga - b.ga;
+        if (b.played !== a.played) return b.played - a.played;
+        return a.code.localeCompare(b.code);
+    });
+
+    const first = candidates[0] || null;
+    const second = candidates[1] || null;
+    const third = candidates[2] || null;
+    const firstResolved = Boolean(first) && !sameBestThirdRecord(first, second);
+    const secondResolved = Boolean(second) && firstResolved && !sameBestThirdRecord(second, third);
+
+    return {
+        candidates,
+        first: firstResolved ? first : null,
+        second: secondResolved ? second : null,
+        firstResolved,
+        secondResolved
+    };
+}
+
+function sameBestThirdRecord(a, b) {
     return Boolean(
         a && b
         && a.points === b.points
@@ -503,8 +556,9 @@ function sameBestSecondRecord(a, b) {
     );
 }
 
-function getBestSecondTeamByRank(rankNumber, excludedGroupId = null) {
-    const candidates = getBestSecondCandidates(excludedGroupId);
+function getBestThirdTeamByRank(rankNumber, excludedGroupId = null) {
+    const bestThirdRanking = getBestThirdRanking(computeGroupStandings(), excludedGroupId);
+    const candidates = bestThirdRanking.candidates;
 
     if (!Number.isInteger(rankNumber) || rankNumber < 1) {
         return null;
@@ -520,11 +574,11 @@ function getBestSecondTeamByRank(rankNumber, excludedGroupId = null) {
     const second = candidates[1];
     const third = candidates[2];
 
-    if (sameBestSecondRecord(first, second)) {
+    if (sameBestThirdRecord(first, second)) {
         return null;
     }
 
-    if (rankNumber === 2 && sameBestSecondRecord(second, third)) {
+    if (rankNumber === 2 && sameBestThirdRecord(second, third)) {
         return null;
     }
 
@@ -559,24 +613,24 @@ function resolveSideToken(token, stack = new Set()) {
         return team || { text: token };
     }
 
-    const firstBestSecondMatch = token.match(/^1r\s+millor\s+2n(?:\s+G([1-7]))?$/i);
-    if (firstBestSecondMatch) {
-        const excludedGroupId = firstBestSecondMatch[1] ? Number(firstBestSecondMatch[1]) : null;
-        const team = getBestSecondTeamByRank(1, excludedGroupId);
+    const firstBestThirdMatch = token.match(/^1r\s+millor\s+3r(?:\s+G([1-7]))?$/i);
+    if (firstBestThirdMatch) {
+        const excludedGroupId = firstBestThirdMatch[1] ? Number(firstBestThirdMatch[1]) : null;
+        const team = getBestThirdTeamByRank(1, excludedGroupId);
         return team || { text: token };
     }
 
-    const secondBestSecondMatch = token.match(/^2n\s+millor\s+2n(?:\s+G([1-7]))?$/i);
-    if (secondBestSecondMatch) {
-        const excludedGroupId = secondBestSecondMatch[1] ? Number(secondBestSecondMatch[1]) : null;
-        const team = getBestSecondTeamByRank(2, excludedGroupId);
+    const secondBestThirdMatch = token.match(/^2n\s+millor\s+3r(?:\s+G([1-7]))?$/i);
+    if (secondBestThirdMatch) {
+        const excludedGroupId = secondBestThirdMatch[1] ? Number(secondBestThirdMatch[1]) : null;
+        const team = getBestThirdTeamByRank(2, excludedGroupId);
         return team || { text: token };
     }
 
-    const genericBestSecondMatch = token.match(/^millor\s+2n(?:\s+G([1-7]))?$/i);
-    if (genericBestSecondMatch) {
-        const excludedGroupId = genericBestSecondMatch[1] ? Number(genericBestSecondMatch[1]) : null;
-        const team = getBestSecondTeamByRank(1, excludedGroupId);
+    const genericBestThirdMatch = token.match(/^millor\s+3r(?:\s+G([1-7]))?$/i);
+    if (genericBestThirdMatch) {
+        const excludedGroupId = genericBestThirdMatch[1] ? Number(genericBestThirdMatch[1]) : null;
+        const team = getBestThirdTeamByRank(1, excludedGroupId);
         return team || { text: token };
     }
 
@@ -598,6 +652,18 @@ function getRenderedDetail(match) {
     return `${left.text} vs ${right.text}`;
 }
 
+function getBestThirdSlotLabel(token) {
+    if (/^1r\s+millor\s+3r(?:\s+G[1-7])?$/i.test(token)) {
+        return "1r millor 3r";
+    }
+
+    if (/^2n\s+millor\s+3r(?:\s+G[1-7])?$/i.test(token)) {
+        return "2n millor 3r";
+    }
+
+    return "";
+}
+
 function extractGroups(match) {
     const text = `${match.code} ${match.detail}`;
     const found = new Set();
@@ -609,12 +675,12 @@ function extractGroups(match) {
         if (token[2]) found.add(Number(token[2]));
     }
 
-    // "millor 2n" can represent second-place teams from many groups.
+    // "millor 3r" can represent third-place teams from many groups.
     // Include all candidate groups (except explicit exclusion like "G1").
-    const bestSecondRegex = /(?:1r|2n)?\s*millor\s*2n(?:\s*G([1-7]))?/gi;
-    let bestSecondToken;
-    while ((bestSecondToken = bestSecondRegex.exec(text)) !== null) {
-        const excludedGroup = bestSecondToken[1] ? Number(bestSecondToken[1]) : null;
+    const bestThirdRegex = /(?:1r|2n)?\s*millor\s*3r(?:\s*G([1-7]))?/gi;
+    let bestThirdToken;
+    while ((bestThirdToken = bestThirdRegex.exec(text)) !== null) {
+        const excludedGroup = bestThirdToken[1] ? Number(bestThirdToken[1]) : null;
         for (let group = 1; group <= 7; group += 1) {
             if (group !== excludedGroup) {
                 found.add(group);
@@ -633,8 +699,37 @@ function isLiveSlot(match) {
 
 function renderStandings() {
     const ranking = computeGroupStandings();
+    const bestThirdRanking = getBestThirdRanking(ranking);
 
-    standingsGridEl.innerHTML = groups.map((group) => {
+    const renderBestThirdSummaryRow = (label, entry, isResolved) => {
+        const content = entry?.code
+            ? `${teamNames[entry.code] || entry.code} (${entry.code}) · ${groups.find((group) => group.id === entry.groupId)?.name || `Grup ${entry.groupId}`} · PTS ${entry.points} | DG ${entry.gd} | GF ${entry.gf}`
+            : isResolved
+                ? "Sense dades"
+                : "Pendent de desempat o de resultats";
+
+        return `
+                    <div class="best-third-row ${isResolved ? "resolved" : "pending"}">
+                        <p class="best-third-label">${label}</p>
+                        <p class="best-third-team">${content}</p>
+                    </div>
+                `;
+    };
+
+    const bestThirdCardHtml = `
+                <article class="standing-card standing-card-summary">
+                    <div class="standing-header">
+                        <p class="standing-group">Millors 3rs</p>
+                        <p class="standing-status">${bestThirdRanking.candidates.length ? "Calculat" : "Pendent"}</p>
+                    </div>
+                    <div class="best-third-summary">
+                        ${renderBestThirdSummaryRow("1r millor 3r", bestThirdRanking.first, bestThirdRanking.firstResolved)}
+                        ${renderBestThirdSummaryRow("2n millor 3r", bestThirdRanking.second, bestThirdRanking.secondResolved)}
+                    </div>
+                </article>
+            `;
+
+    standingsGridEl.innerHTML = bestThirdCardHtml + groups.map((group) => {
         const groupData = ranking[group.id];
         const rows = groupData?.rows || [];
         const status = groupData?.complete ? "Tancat" : "Pendent";
@@ -642,16 +737,32 @@ function renderStandings() {
         const rowHtml = rows.map((entry, index) => {
             const teamCode = entry.code;
             const teamName = teamNames[teamCode] || teamCode;
-            const tag = index === 0 && groupData.firstResolved
-                ? '<span class="tag first">1r</span>'
-                : index === 1 && groupData.secondResolved
-                    ? '<span class="tag second">2n</span>'
-                    : "";
+            const tags = [];
+
+            if (index === 0 && groupData.firstResolved) {
+                tags.push('<span class="tag first">1r</span>');
+            }
+
+            if (index === 1 && groupData.secondResolved) {
+                tags.push('<span class="tag second">2n</span>');
+            }
+
+            if (index === 2 && groupData.thirdResolved) {
+                tags.push('<span class="tag third">3r</span>');
+            }
+
+            if (index === 2 && bestThirdRanking.first?.code === teamCode && bestThirdRanking.first.groupId === group.id) {
+                tags.push('<span class="tag best-third">1r millor 3r</span>');
+            }
+
+            if (index === 2 && bestThirdRanking.second?.code === teamCode && bestThirdRanking.second.groupId === group.id) {
+                tags.push('<span class="tag best-third alt">2n millor 3r</span>');
+            }
 
             return `
                         <div class="standing-row">
                             <span class="standing-pos">${index + 1}</span>
-                            <p class="standing-team">${teamName} (${teamCode}) ${tag}</p>
+                            <p class="standing-team">${teamName} (${teamCode}) ${tags.join(" ")}</p>
                             <p class="standing-stats">PTS ${entry.points} | DG ${entry.gd} | GF ${entry.gf}</p>
                         </div>
                     `;
@@ -913,19 +1024,19 @@ function renderBoard() {
                     const rightScore = Number.isInteger(savedScore.right) ? savedScore.right : "";
                     cardHtml += `
                             <div class="score-editor">
-                                <span class="score-label">Goles</span>
+                                <span class="score-label">Gols</span>
                                 <div class="score-box">
-                                    <input class="score-input" type="number" min="0" step="1" inputmode="numeric" data-score-code="${match.code}" data-score-side="left" value="${leftScore}" aria-label="Goles equipo 1" />
+                                    <input class="score-input" type="number" min="0" step="1" inputmode="numeric" data-score-code="${match.code}" data-score-side="left" value="${leftScore}" aria-label="Gols equip 1" />
                                     <span class="score-sep">-</span>
-                                    <input class="score-input" type="number" min="0" step="1" inputmode="numeric" data-score-code="${match.code}" data-score-side="right" value="${rightScore}" aria-label="Goles equipo 2" />
+                                    <input class="score-input" type="number" min="0" step="1" inputmode="numeric" data-score-code="${match.code}" data-score-side="right" value="${rightScore}" aria-label="Gols equip 2" />
                                 </div>
                             </div>
                             <div class="predictor">
-                                <button type="button" class="pick-btn ${picked === "left" ? "active" : ""}" data-code="${match.code}" data-side="left">Gana: ${left.text}</button>
-                                <button type="button" class="pick-btn ${picked === "right" ? "active" : ""}" data-code="${match.code}" data-side="right">Gana: ${right.text}</button>
-                                ${picked ? `<button type="button" class="clear-pick-btn" data-clear-code="${match.code}">Limpiar</button>` : ""}
+                                <button type="button" class="pick-btn ${picked === "left" ? "active" : ""}" data-code="${match.code}" data-side="left">Guanya: ${left.text}</button>
+                                <button type="button" class="pick-btn ${picked === "right" ? "active" : ""}" data-code="${match.code}" data-side="right">Guanya: ${right.text}</button>
+                                ${picked ? `<button type="button" class="clear-pick-btn" data-clear-code="${match.code}">Netejar</button>` : ""}
                             </div>
-                            <p class="predictor-note">El ganador se deduce por goles. Si hay empate, usa los botones.</p>
+                            <p class="predictor-note">El guanyador es deduix pels gols. Si hi ha empat, usa els botons.</p>
                             `;
                 }
 
@@ -1011,10 +1122,14 @@ function renderBracketMatchCard(match) {
 
     const left = resolveSideToken(sides[0]);
     const right = resolveSideToken(sides[1]);
+    const leftSlotLabel = getBestThirdSlotLabel(sides[0]);
+    const rightSlotLabel = getBestThirdSlotLabel(sides[1]);
     const picked = picks[match.code] || "";
     const timeLabel = match.time && match.day
         ? `${match.time} · ${match.day}`
         : (match.time || match.day || "Virtual");
+    const leftButtonLabel = left.text.length > 26 ? `${left.text.slice(0, 26).trim()}...` : left.text;
+    const rightButtonLabel = right.text.length > 26 ? `${right.text.slice(0, 26).trim()}...` : right.text;
 
     return `
                 <article class="bracket-match ${match.virtual ? "virtual" : ""}">
@@ -1022,12 +1137,12 @@ function renderBracketMatchCard(match) {
                         <span class="bracket-code">${match.code}</span>
                         <span class="bracket-time">${timeLabel}</span>
                     </div>
-                    <p class="bracket-line">${left.text}</p>
-                    <p class="bracket-line">${right.text}</p>
+                    <p class="bracket-line ${leftSlotLabel ? "is-best-third-slot" : ""}">${left.text}${leftSlotLabel ? ` <span class="bracket-tag">${leftSlotLabel}</span>` : ""}</p>
+                    <p class="bracket-line ${rightSlotLabel ? "is-best-third-slot" : ""}">${right.text}${rightSlotLabel ? ` <span class="bracket-tag alt">${rightSlotLabel}</span>` : ""}</p>
                     <div class="bracket-controls">
-                        <button type="button" class="pick-btn ${picked === "left" ? "active" : ""}" data-code="${match.code}" data-side="left">Gana 1</button>
-                        <button type="button" class="pick-btn ${picked === "right" ? "active" : ""}" data-code="${match.code}" data-side="right">Gana 2</button>
-                        ${picked ? `<button type="button" class="clear-pick-btn" data-clear-code="${match.code}">Limpiar</button>` : ""}
+                        <button type="button" class="pick-btn ${picked === "left" ? "active" : ""}" data-code="${match.code}" data-side="left" title="${left.text}">Guanya: ${leftButtonLabel}</button>
+                        <button type="button" class="pick-btn ${picked === "right" ? "active" : ""}" data-code="${match.code}" data-side="right" title="${right.text}">Guanya: ${rightButtonLabel}</button>
+                        ${picked ? `<button type="button" class="clear-pick-btn" data-clear-code="${match.code}">Llevar guanyador</button>` : ""}
                     </div>
                 </article>
             `;
