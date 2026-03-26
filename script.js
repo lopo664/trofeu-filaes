@@ -75,6 +75,7 @@ const venuesEl = document.getElementById("venues");
 const globalCount = document.getElementById("globalCount");
 const searchEl = document.getElementById("search");
 const venueEl = document.getElementById("venue");
+const matchDayEl = document.getElementById("matchDay");
 const startTimeEl = document.getElementById("startTime");
 const startTimeText = document.getElementById("startTimeText");
 const finalsOnlyEl = document.getElementById("finalsOnly");
@@ -95,6 +96,7 @@ const picks = {};
 const scores = {};
 const collapsedVenues = {};
 const STORAGE_KEY = "trofeu-filaes-results-v1";
+const DEFAULT_MATCH_DAY = "Divendres 18 d'abril";
 
 const virtualBracketMatches = [
     { code: "QF1", time: "09:00", detail: "Guanyador OF1 vs Guanyador OF5", final: true, virtual: true, day: "Dissabte 19 d'abril" },
@@ -191,6 +193,10 @@ function clearPersistedResults() {
 
 function hourNumber(time) {
     return Number(time.split(":")[0]);
+}
+
+function getMatchDay(match) {
+    return match?.day || DEFAULT_MATCH_DAY;
 }
 
 function teamLabel(code) {
@@ -932,6 +938,7 @@ function applyTeamQuickPickResults(teamCode, groupId) {
 function filteredMatches() {
     const q = searchEl.value.trim().toLowerCase();
     const selectedVenue = venueEl.value;
+    const selectedDay = matchDayEl?.value || "all";
     const minHour = Number(startTimeEl.value);
     const finalsOnly = finalsOnlyEl.checked;
 
@@ -939,6 +946,7 @@ function filteredMatches() {
         const renderedDetail = getRenderedDetail(match);
         const searchableText = `${match.code} ${match.detail} ${renderedDetail}`.toLowerCase();
         const byVenue = selectedVenue === "all" || match.venue === selectedVenue;
+        const byDay = selectedDay === "all" || getMatchDay(match) === selectedDay;
         const byHour = hourNumber(match.time) >= minHour;
         const byQuery = q === "" || searchableText.includes(q);
         const byFinal = !finalsOnly || Boolean(match.final);
@@ -946,7 +954,7 @@ function filteredMatches() {
         const groupsInMatch = extractGroups(match);
         const byGroup = !activeGroup || groupsInMatch.includes(activeGroup);
 
-        return byVenue && byHour && byQuery && byFinal && byGroup;
+        return byVenue && byDay && byHour && byQuery && byFinal && byGroup;
     });
 }
 
@@ -1149,6 +1157,7 @@ function renderBracketMatchCard(match) {
 }
 
 function renderBracket() {
+    const selectedDay = matchDayEl?.value || "all";
     const rounds = [
         {
             name: "Octaus (Reals)",
@@ -1166,7 +1175,17 @@ function renderBracket() {
             name: "Final (Virtual)",
             matches: ["F"].map(getMatchByCode).filter(Boolean)
         }
-    ];
+    ]
+        .map((round) => ({
+            ...round,
+            matches: round.matches.filter((match) => selectedDay === "all" || getMatchDay(match) === selectedDay)
+        }))
+        .filter((round) => round.matches.length > 0);
+
+    if (!rounds.length) {
+        finalsBracketEl.innerHTML = '<div class="empty">No hi ha partits d\'eliminatòria en este dia.</div>';
+        return;
+    }
 
     finalsBracketEl.innerHTML = rounds.map((round) => `
                 <div class="round">
@@ -1242,7 +1261,7 @@ function initCollapsibleSections() {
     setupCollapsibleSection(bracketSectionEl, bracketTitleEl, "trofeu-collapse-bracket");
 }
 
-[searchEl, venueEl, finalsOnlyEl].forEach((el) => el.addEventListener("input", renderBoard));
+[searchEl, venueEl, matchDayEl, finalsOnlyEl].forEach((el) => el.addEventListener("input", renderBoard));
 startTimeEl.addEventListener("input", () => {
     refreshStartTimeLabel();
     renderBoard();
