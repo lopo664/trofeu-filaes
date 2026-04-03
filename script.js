@@ -117,73 +117,85 @@ function getStorage() {
 }
 
 function savePersistedState() {
-    const storage = getStorage();
-    if (!storage) {
-        return;
-    }
-
     const payload = {
         picks,
         scores,
         collapsedVenues
     };
 
-    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
+    if (window.TrofeuStorageBridge?.writeState) {
+        window.TrofeuStorageBridge.writeState(payload);
+        return;
+    }
 
-function loadPersistedState() {
     const storage = getStorage();
     if (!storage) {
         return;
     }
 
-    const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) {
-        return;
-    }
+    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function loadPersistedState() {
+    const sharedState = window.TrofeuStorageBridge?.readState
+        ? window.TrofeuStorageBridge.readState()
+        : null;
+    const storage = getStorage();
 
     try {
-        const data = JSON.parse(raw);
-        if (data && typeof data === "object") {
-            if (data.picks && typeof data.picks === "object") {
-                Object.entries(data.picks).forEach(([code, side]) => {
-                    if (side === "left" || side === "right") {
-                        picks[code] = side;
-                    }
-                });
-            }
+        const raw = sharedState ? null : storage?.getItem(STORAGE_KEY);
+        const data = sharedState || (raw ? JSON.parse(raw) : null);
+        if (!data || typeof data !== "object") {
+            return;
+        }
 
-            if (data.scores && typeof data.scores === "object") {
-                Object.entries(data.scores).forEach(([code, score]) => {
-                    if (!score || typeof score !== "object") {
-                        return;
-                    }
+        if (data.picks && typeof data.picks === "object") {
+            Object.entries(data.picks).forEach(([code, side]) => {
+                if (side === "left" || side === "right") {
+                    picks[code] = side;
+                }
+            });
+        }
 
-                    const left = Number.isInteger(score.left) && score.left >= 0 ? score.left : null;
-                    const right = Number.isInteger(score.right) && score.right >= 0 ? score.right : null;
+        if (data.scores && typeof data.scores === "object") {
+            Object.entries(data.scores).forEach(([code, score]) => {
+                if (!score || typeof score !== "object") {
+                    return;
+                }
 
-                    if (left !== null || right !== null) {
-                        scores[code] = { left, right };
-                    }
-                });
-            }
+                const left = Number.isInteger(score.left) && score.left >= 0 ? score.left : null;
+                const right = Number.isInteger(score.right) && score.right >= 0 ? score.right : null;
 
-            if (data.collapsedVenues && typeof data.collapsedVenues === "object") {
-                Object.entries(data.collapsedVenues).forEach(([venueName, isCollapsed]) => {
-                    if (typeof isCollapsed === "boolean") {
-                        collapsedVenues[venueName] = isCollapsed;
-                    }
-                });
-            }
+                if (left !== null || right !== null) {
+                    scores[code] = { left, right };
+                }
+            });
+        }
+
+        if (data.collapsedVenues && typeof data.collapsedVenues === "object") {
+            Object.entries(data.collapsedVenues).forEach(([venueName, isCollapsed]) => {
+                if (typeof isCollapsed === "boolean") {
+                    collapsedVenues[venueName] = isCollapsed;
+                }
+            });
         }
     } catch {
-        storage.removeItem(STORAGE_KEY);
+        if (window.TrofeuStorageBridge?.clearState) {
+            window.TrofeuStorageBridge.clearState();
+        } else {
+            storage?.removeItem(STORAGE_KEY);
+        }
     }
 }
 
 function clearPersistedResults() {
     Object.keys(picks).forEach((key) => delete picks[key]);
     Object.keys(scores).forEach((key) => delete scores[key]);
+
+    if (window.TrofeuStorageBridge?.clearState) {
+        window.TrofeuStorageBridge.clearState();
+        return;
+    }
 
     const storage = getStorage();
     if (storage) {
